@@ -1,11 +1,10 @@
 ## Credits
 - Created by **Bhanu Kesavareddy**  
 - Major contributions from **ChatGPT**
-- Minor contributions from **Ethan Nguyen**
 
-# Theta Tau PNM Study Guide
+# Theta Tau Study Guide
 
-This study guide is updated weekly to help PNMs prepare for upcoming quizzes.
+This study guide is to help PNMs prepare for upcoming quizzes.
 
 ## Important Information
 - Quizzes are **cumulative**
