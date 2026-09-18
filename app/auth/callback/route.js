@@ -4,7 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const response = NextResponse.redirect(`${origin}/dashboard`);
+  const next = searchParams.get("next") === "/update-password" ? "/update-password" : "/dashboard";
+  const response = NextResponse.redirect(`${origin}${next}`);
   if (code) {
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
       cookies: {
