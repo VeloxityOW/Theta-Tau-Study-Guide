@@ -98,8 +98,7 @@
     bindGlobalEvents();
     setLoginRole(state.loginRole);
 
-    if (localStorage.getItem(keys.unlocked) === "true") unlock(false);
-    else el.passwordInput?.focus();
+    unlock(false);
 
     updateStats();
     render();
