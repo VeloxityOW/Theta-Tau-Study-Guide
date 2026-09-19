@@ -915,15 +915,7 @@
   }
 
   function signOut() {
-    localStorage.removeItem(keys.unlocked);
-    localStorage.removeItem("thetaStudy.loginEmail");
-    el.app.classList.add("hidden");
-    el.progressBar.classList.add("hidden");
-    el.gate.classList.remove("hidden");
-    el.passwordInput.value = "";
-    el.gateMessage.textContent = "You have signed out. Choose an account type to sign in again.";
-    setLoginRole(state.loginRole);
-    el.passwordInput.focus();
+    window.location.assign("/");
   }
 
   function resetProgress() {
