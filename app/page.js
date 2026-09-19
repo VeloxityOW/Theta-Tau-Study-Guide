@@ -30,7 +30,7 @@ export default function SignInPage() {
       return;
     }
 
-    window.location.assign("/dashboard");
+    window.location.assign("/study-guide/");
   }
 
   return (
