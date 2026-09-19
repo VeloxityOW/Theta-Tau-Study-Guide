@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") === "/update-password" ? "/update-password" : "/dashboard";
+  const next = searchParams.get("next") === "/update-password" ? "/update-password" : "/study-guide/";
   const response = NextResponse.redirect(`${origin}${next}`);
   if (code) {
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
