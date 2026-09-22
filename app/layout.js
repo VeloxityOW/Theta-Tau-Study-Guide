@@ -9,5 +9,5 @@ export default function RootLayout({ children }) {
     #initial-launch-mask.exiting{pointer-events:none;animation:initial-ripple-out 1.5s cubic-bezier(.22,.8,.25,1) both;-webkit-mask-image:radial-gradient(circle at 50% 50%,transparent 0%,transparent var(--reveal-radius),#000 calc(var(--reveal-radius) + .3%),#000 100%);mask-image:radial-gradient(circle at 50% 50%,transparent 0%,transparent var(--reveal-radius),#000 calc(var(--reveal-radius) + .3%),#000 100%)}
     @keyframes initial-ripple-out{from{--reveal-radius:0%}to{--reveal-radius:150%}}
     @media(prefers-reduced-motion:reduce){#initial-launch-mask.exiting{animation:none;display:none}}
-  `}</style></head><body><div id="initial-launch-mask" aria-hidden="true" />{children}</body></html>;
+  `}</style></head><body><div id="initial-launch-mask" aria-hidden="true" /><script dangerouslySetInnerHTML={{ __html: `window.setTimeout(function(){var mask=document.getElementById('initial-launch-mask');if(mask)mask.classList.add('exiting');},250);window.setTimeout(function(){document.getElementById('initial-launch-mask')?.remove();},1750);` }} />{children}</body></html>;
 }
