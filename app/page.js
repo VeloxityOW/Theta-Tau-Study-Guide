@@ -12,8 +12,8 @@ export default function SignInPage() {
 
   useEffect(() => {
     const loader = document.getElementById("initial-launch-mask");
-    const beginExit = window.setTimeout(() => loader?.classList.add("exiting"), 1000);
-    const removeLoader = window.setTimeout(() => loader?.remove(), 2500);
+    const beginExit = window.setTimeout(() => loader?.classList.add("exiting"), 250);
+    const removeLoader = window.setTimeout(() => loader?.remove(), 1750);
     return () => {
       window.clearTimeout(beginExit);
       window.clearTimeout(removeLoader);
