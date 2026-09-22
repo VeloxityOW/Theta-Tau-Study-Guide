@@ -335,12 +335,23 @@
     });
   }
 
+  function availableQuestions() {
+    if (window.THETA_PORTAL?.isStaff) return questions;
+    const released = window.THETA_PORTAL?.visibleQuizzes || new Set();
+    return questions.filter(question => released.has(question.quiz));
+  }
+
+  function availableQuizNames() {
+    return QUIZ_BOUNDARIES.map(group => group.name)
+      .filter(name => availableQuestions().some(question => question.quiz === name));
+  }
+
   function renderDashboard() {
     const totals = computeTotals();
     const quizCards = QUIZ_BOUNDARIES
       .filter(group => window.THETA_PORTAL?.isStaff || window.THETA_PORTAL?.visibleQuizzes?.has(group.name))
       .map(group => {
-      const deck = questions.filter(q => q.quiz === group.name);
+      const deck = availableQuestions().filter(q => q.quiz === group.name);
       const mastered = deck.filter(q => getProgress(q.id).mastered).length;
       const answered = deck.filter(q => getProgress(q.id).answered).length;
       const pct = deck.length ? Math.round((mastered / deck.length) * 100) : 0;
@@ -616,7 +627,7 @@
       <section class="control-panel">
         <div class="search-row">
           <select class="select-input"  id="flashDeckSelect">
-            ${["All"].concat(QUIZ_BOUNDARIES.map(g => g.name)).map(deckName => `<option value="${deckName}" ${currentDeckName() === deckName ? "selected" : ""}>${deckName}</option>`).join("")}
+            ${["All"].concat(availableQuizNames()).map(deckName => `<option value="${deckName}" ${currentDeckName() === deckName ? "selected" : ""}>${deckName}</option>`).join("")}
           </select>
           <button class="ghost-btn" data-action="flash-prev" type="button">Previous</button>
           <button class="ghost-btn" data-action="flash-next" type="button">Next</button>
@@ -656,7 +667,7 @@
   }
 
   function getDeckForMode(reviewOnly) {
-    let deck = questions.filter(q => {
+    let deck = availableQuestions().filter(q => {
       const p = getProgress(q.id);
       if (state.activeDeck && q.quiz !== state.activeDeck) return false;
       if (reviewOnly && p.mastered) return false;
@@ -698,7 +709,7 @@
       renderQuizQuestion();
       return;
     }
-    const deckOptions = ["All"].concat(QUIZ_BOUNDARIES.map(q => q.name));
+    const deckOptions = ["All"].concat(availableQuizNames());
     const sizeOptions = config.study?.quizSizeOptions || [10, 20, "All"];
     el.view.innerHTML = `
       <section class="hero-card">
@@ -721,7 +732,7 @@
   function startQuiz() {
     const deckName = document.getElementById("quizDeck")?.value || "All";
     const sizeValue = document.getElementById("quizSize")?.value || "20";
-    let deck = questions.filter(q => deckName === "All" || q.quiz === deckName);
+    let deck = availableQuestions().filter(q => deckName === "All" || q.quiz === deckName);
     deck = shuffle(deck.slice());
     const count = sizeValue === "All" ? deck.length : Math.min(Number(sizeValue), deck.length);
     deck = deck.slice(0, count);
@@ -833,7 +844,7 @@
   function renderStats() {
     const totals = computeTotals();
     const categoryRows = categories.filter(c => c !== "All").map(cat => {
-      const deck = questions.filter(q => q.category === cat);
+      const deck = availableQuestions().filter(q => q.category === cat);
       const mastered = deck.filter(q => getProgress(q.id).mastered).length;
       const pct = deck.length ? Math.round(mastered / deck.length * 100) : 0;
       return `<div class="history-row"><strong>${escapeHtml(cat)}</strong><div class="progress-pill"><span style="width:${pct}%"></span></div><span>${mastered}/${deck.length}</span></div>`;
@@ -1089,11 +1100,12 @@
   }
 
   function computeTotals() {
-    const total = questions.length;
+    const available = availableQuestions();
+    const total = available.length;
     let correct = 0;
     let wrong = 0;
     let mastered = 0;
-    questions.forEach(q => {
+    available.forEach(q => {
       const p = getProgress(q.id);
       if (p.correct) correct += 1;
       if (p.answered && !p.correct) wrong += 1;
