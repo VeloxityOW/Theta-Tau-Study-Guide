@@ -174,7 +174,8 @@
     const staffLinks = window.THETA_PORTAL?.isStaff ? `
       <button class="nav-btn" data-view="staff" type="button"><span class="nav-icon">◈</span><span>Staff</span></button>
       <button class="nav-btn" data-view="members" type="button"><span class="nav-icon">♙</span><span>Members</span></button>
-      <button class="nav-btn" data-view="class-settings" type="button"><span class="nav-icon">⚙</span><span>Class Setup</span></button>` : "";
+      <button class="nav-btn" data-view="class-settings" type="button"><span class="nav-icon">⚙</span><span>Class Setup</span></button>
+      <a class="nav-btn nav-link" href="/invites"><span class="nav-icon">✉</span><span>Invite links</span></a>` : "";
     const html = visibleItems.map(item => navButtonHtml(item)).join("") + staffLinks;
     el.navList.innerHTML = html;
     el.mobileNav.innerHTML = `<details class="mobile-menu"><summary><span>☰</span><strong>Menu</strong><small>All pages</small></summary><div class="mobile-menu-items">${html}</div></details>`;
@@ -874,8 +875,7 @@
     const classPct = pnms.length && questions.length ? Math.round(mastered / (pnms.length * questions.length) * 100) : 0;
     el.view.innerHTML = `
       <section class="hero-card staff-hero">
-        <div><p class="eyebrow">Staff dashboard</p><h2>Pledge-class overview</h2><p>See readiness at a glance, then reach out before quiz day.</p></div>
-        <a class="primary-btn" href="/study-guide/?view=members">View members</a>
+        <div><p class="eyebrow">Staff dashboard</p><h2>Pledge-class overview</h2><p>See readiness at a glance, then use Members and Invite links in the menu to manage access.</p></div>
       </section>
       <section class="staff-metrics">
         <article class="staff-metric"><span>${pnms.length}</span><small>Active PNMs</small></article>
@@ -893,7 +893,7 @@
   function renderMembers() {
     const profiles = window.THETA_PORTAL?.staffData?.profiles || [];
     el.view.innerHTML = `
-      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Review real member roles and study activity. Create a capped PNM invite link whenever you need one.</p></div><a class="primary-btn" href="/invites">Invite links</a></section>
+      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Review real member roles and study activity. Create capped PNM invite links from the staff navigation.</p></div></section>
       <section class="content-card staff-table-card"><div class="member-toolbar"><input class="answer-input" placeholder="Search members…" aria-label="Search members" /><select class="select-input"><option>All roles</option><option>PNMs</option><option>NMEs</option><option>Admins</option></select></div>
       <div class="member-table"><div class="table-head"><span>Member</span><span>Role</span><span>Email</span><span>Access</span></div>
       ${profiles.map(member => `<div class="table-row"><strong>${escapeHtml(member.display_name || "—")}</strong><span class="role-pill">${escapeHtml(member.role)}</span><span>${escapeHtml(member.email)}</span><span>${member.role === "pnm" ? "Own progress" : member.role === "nme" ? "Class statistics" : "Full access"}</span></div>`).join("") || `<div class="empty-state"><h2>No members yet.</h2></div>`}</div></section>`;

@@ -567,6 +567,7 @@ img.brand-mark { display: block; object-fit: contain; padding: 3px; background: 
 .hero-card p { max-width: 680px; color: var(--muted); line-height: 1.6; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .primary-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.nav-link { text-decoration: none; }
 .secondary-btn {
   border: 1px solid rgba(214,178,94,.24);
   border-radius: 14px;
