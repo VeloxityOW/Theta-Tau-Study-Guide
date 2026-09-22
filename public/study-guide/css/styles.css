@@ -608,7 +608,14 @@ img.brand-mark { display: block; object-fit: contain; padding: 3px; background: 
   background: rgba(255,236,236,.055);
   padding: 0 14px;
 }
-.select-input { appearance: none; }
+.select-input {
+  appearance: auto;
+  color-scheme: dark;
+}
+.select-input option {
+  color: var(--text);
+  background: #251010;
+}
 .toggle-line { display: flex; align-items: center; gap: 10px; color: var(--muted); white-space: nowrap; }
 .toggle { width: 48px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid var(--border-soft); position: relative; transition: .18s ease; }
 .toggle::after { content: ""; width: 20px; height: 20px; position: absolute; top: 3px; left: 4px; border-radius: 999px; background: var(--muted); transition: .18s ease; }
