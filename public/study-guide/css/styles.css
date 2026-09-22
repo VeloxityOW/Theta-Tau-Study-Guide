@@ -77,6 +77,9 @@ button { cursor: pointer; }
 .table-head { color: var(--muted-2); font-size: .76rem; letter-spacing: .07em; text-transform: uppercase; background: rgba(0,0,0,.14); }
 .table-row { border-top: 1px solid var(--border-soft); color: var(--muted); }
 .table-row strong { color: var(--text); }
+.inline-question-editor { padding: 18px 16px 20px; border-top: 1px solid var(--border-soft); background: rgba(255,255,255,.025); }
+.inline-question-editor label { display: grid; gap: 7px; margin: 12px 0; color: var(--muted); font-size: .87rem; }
+.inline-question-editor textarea { min-height: 84px; resize: vertical; }
 .status-pill, .role-pill { display: inline-flex; width: fit-content; padding: 5px 9px; border-radius: 999px; font-size: .76rem; font-weight: 600; color: var(--gold-2); background: var(--gold-dim); }
 .status-pill.warn { color: #ffc77a; background: rgba(255, 170, 75, .12); }
 .status-pill.ok { color: var(--ok); background: rgba(54,211,124,.12); }
