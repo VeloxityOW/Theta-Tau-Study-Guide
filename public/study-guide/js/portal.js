@@ -3,7 +3,7 @@ import { createBrowserClient } from "https://esm.sh/@supabase/ssr@0.6.1";
 async function startPortal() {
   const configResponse = await fetch("/api/portal-config", { cache: "no-store" });
   if (!configResponse.ok) throw new Error("Portal configuration could not be loaded.");
-  const { url, key } = await configResponse.json();
+  const { url, key, role: serverRole, displayName } = await configResponse.json();
   const supabase = createBrowserClient(url, key);
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -18,7 +18,8 @@ async function startPortal() {
     supabase.from("study_questions").select("id, question, answer, mode, category, quiz, is_custom, is_visible")
   ]);
 
-  if (profileError || !profile) throw new Error("Your portal profile is not ready yet.");
+  const resolvedProfile = profile || { role: serverRole, display_name: displayName };
+  if (profileError && !serverRole) throw new Error("Your portal profile is not ready yet.");
 
   const base = window.THETA_QUESTIONS || [];
   const baseById = new Map(base.map(question => [question.id, question]));
@@ -37,12 +38,12 @@ async function startPortal() {
   });
 
   window.THETA_QUESTIONS = Array.from(baseById.values());
-  const isStaff = profile.role === "nme" || profile.role === "admin";
+  const isStaff = resolvedProfile.role === "nme" || resolvedProfile.role === "admin";
   const staffData = isStaff ? await loadStaffData(supabase) : null;
   window.THETA_PORTAL = {
     supabase,
     user,
-    profile,
+    profile: resolvedProfile,
     isStaff,
     staffData,
     progress: Object.fromEntries((savedProgress || []).map(item => [item.question_id, {

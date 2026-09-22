@@ -172,9 +172,9 @@
   function renderNav() {
     const visibleItems = NAV_ITEMS.filter(item => !STAFF_ONLY_VIEWS.has(item.view));
     const staffLinks = window.THETA_PORTAL?.isStaff ? `
-      <a class="nav-btn" href="/staff#overview"><span class="nav-icon">◈</span><span>Staff</span></a>
-      <a class="nav-btn" href="/staff#members"><span class="nav-icon">♙</span><span>Members</span></a>
-      <a class="nav-btn" href="/staff#questions"><span class="nav-icon">⚙</span><span>Class Setup</span></a>` : "";
+      <button class="nav-btn" data-view="staff" type="button"><span class="nav-icon">◈</span><span>Staff</span></button>
+      <button class="nav-btn" data-view="members" type="button"><span class="nav-icon">♙</span><span>Members</span></button>
+      <button class="nav-btn" data-view="class-settings" type="button"><span class="nav-icon">⚙</span><span>Class Setup</span></button>` : "";
     const html = visibleItems.map(item => navButtonHtml(item)).join("") + staffLinks;
     el.navList.innerHTML = html;
     el.mobileNav.innerHTML = visibleItems.slice(0, 5).map(item => navButtonHtml(item)).join("");
