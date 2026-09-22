@@ -9,7 +9,6 @@
   "use strict";
 
   const config = window.THETA_CONFIG || {};
-  const rawQuestions = window.THETA_QUESTIONS || [];
   const keys = config.storageKeys || {};
 
   const NAV_ITEMS = [
@@ -41,6 +40,9 @@
     hideMastered: false,
     shuffled: false,
     activeDeck: null,
+    staffQuizFilter: "All",
+    editingQuestionId: null,
+    creatingQuestion: false,
     loginRole: "pnm",
     flashIndex: 0,
     quiz: null,
@@ -84,8 +86,8 @@
     confetti: document.getElementById("confetti")
   };
 
-  const questions = rawQuestions.map((question, index) => enrichQuestion(question, index));
-  const categories = ["All"].concat(unique(questions.map(q => q.category)));
+  let questions = [];
+  let categories = ["All"];
 
   let gateAnimation = createGateAnimation(el.gateCanvas);
 
@@ -95,6 +97,8 @@
       state.loginRole = portal.isStaff ? "staff" : "pnm";
       progress = { ...progress, ...portal.progress };
     }
+    questions = (window.THETA_QUESTIONS || []).map((question, index) => enrichQuestion(question, index));
+    categories = ["All"].concat(unique(questions.map(q => q.category)));
     init();
   });
 
@@ -271,6 +275,13 @@
     }
     if (name === "demo-invite") toast("Invite flow will connect to email authentication at launch.", "gold");
     if (name === "demo-save") toast("This preview does not save shared class settings yet.", "gold");
+    if (name === "staff-quiz") { state.staffQuizFilter = action.dataset.quiz || "All"; state.editingQuestionId = null; renderClassSettings(); }
+    if (name === "edit-question") { state.editingQuestionId = id; renderClassSettings(); }
+    if (name === "new-question") { state.creatingQuestion = true; state.editingQuestionId = null; renderClassSettings(); }
+    if (name === "cancel-question-edit") { state.editingQuestionId = null; state.creatingQuestion = false; renderClassSettings(); }
+    if (name === "save-question-edit") saveQuestionEdit(id);
+    if (name === "toggle-question") toggleQuestionVisibility(id);
+    if (name === "remove-question") removeCustomQuestion(id);
     if (name === "login-tab") setLoginRole(action.dataset.role);
     if (name === "sign-out") signOut();
 
@@ -457,6 +468,7 @@
     const search = normalizeLoose(state.search);
     return questions.filter(q => {
       const p = getProgress(q.id);
+      if (!window.THETA_PORTAL?.isStaff && q.isVisible === false) return false;
       if (state.activeDeck && q.quiz !== state.activeDeck) return false;
       if (reviewOnly && (p.mastered && p.correct && p.answered)) return false;
       if (state.filter !== "All" && q.category !== state.filter) return false;
@@ -844,38 +856,115 @@
   }
 
   function renderStaffDashboard() {
+    const data = window.THETA_PORTAL?.staffData || { profiles: [], progress: [], attempts: [] };
+    const pnms = data.profiles.filter(member => member.role === "pnm");
+    const rows = pnms.map(member => staffMemberSummary(member, data));
+    const mastered = rows.reduce((sum, row) => sum + row.mastered, 0);
+    const classPct = pnms.length && questions.length ? Math.round(mastered / (pnms.length * questions.length) * 100) : 0;
     el.view.innerHTML = `
       <section class="hero-card staff-hero">
         <div><p class="eyebrow">Staff dashboard</p><h2>Pledge-class overview</h2><p>See readiness at a glance, then reach out before quiz day.</p></div>
         <button class="primary-btn" data-view="members" type="button">View members</button>
       </section>
       <section class="staff-metrics">
-        <article class="staff-metric"><span>18</span><small>Active PNMs</small></article>
-        <article class="staff-metric"><span>83%</span><small>Class mastery</small></article>
-        <article class="staff-metric"><span>4</span><small>Need follow-up</small></article>
-        <article class="staff-metric"><span>2</span><small>Quizzes due</small></article>
+        <article class="staff-metric"><span>${pnms.length}</span><small>Active PNMs</small></article>
+        <article class="staff-metric"><span>${classPct}%</span><small>Class mastery</small></article>
+        <article class="staff-metric"><span>${rows.filter(row => row.mastered < questions.length * .5).length}</span><small>Need follow-up</small></article>
+        <article class="staff-metric"><span>${data.attempts.length}</span><small>Quizzes taken</small></article>
       </section>
       <section class="content-card staff-table-card"><div class="section-heading"><div><p class="eyebrow">Needs attention</p><h2>Check in this week</h2></div><button class="mini-btn" data-view="members" type="button">See all</button></div>
         <div class="member-table"><div class="table-head"><span>Member</span><span>Mastery</span><span>Latest quiz</span><span>Status</span></div>
-          ${[["Alex Morgan","62%","70%","Review Quiz 3"],["Jordan Lee","71%","80%","2 weak topics"],["Sam Patel","74%","—","Quiz not started"],["Casey Rivera","78%","75%","Review Quiz 2"]].map(row => `<div class="table-row"><strong>${row[0]}</strong><span>${row[1]}</span><span>${row[2]}</span><span class="status-pill warn">${row[3]}</span></div>`).join("")}
+          ${rows.sort((a,b) => a.mastered - b.mastered).slice(0,6).map(row => `<div class="table-row"><strong>${escapeHtml(row.name)}</strong><span>${row.pct}%</span><span>${row.latestQuiz}</span><span class="status-pill warn">${row.mastered < questions.length * .5 ? "Check in" : "On track"}</span></div>`).join("") || `<div class="empty-state"><h2>No PNMs yet.</h2><p>Invite a member from the Members page.</p></div>`}
         </div>
       </section>`;
   }
 
   function renderMembers() {
+    const profiles = window.THETA_PORTAL?.staffData?.profiles || [];
     el.view.innerHTML = `
-      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Invite PNMs and designate NME staff. Access controls will be enforced when authentication is connected.</p></div><button class="primary-btn" type="button" data-action="demo-invite">Invite member</button></section>
+      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Review real member roles and study activity. Admins can invite additional members from the staff portal.</p></div><a class="primary-btn" href="/staff">Invite member</a></section>
       <section class="content-card staff-table-card"><div class="member-toolbar"><input class="answer-input" placeholder="Search members…" aria-label="Search members" /><select class="select-input"><option>All roles</option><option>PNMs</option><option>NMEs</option><option>Admins</option></select></div>
       <div class="member-table"><div class="table-head"><span>Member</span><span>Role</span><span>Email</span><span>Access</span></div>
-      ${[["You","Admin","you@bhanu.cc","Full access"],["NME Example","NME","nme@example.com","Class statistics"],["PNM Example","PNM","pnm@example.com","Own progress"]].map(row => `<div class="table-row"><strong>${row[0]}</strong><span class="role-pill">${row[1]}</span><span>${row[2]}</span><span>${row[3]}</span></div>`).join("")}</div></section>`;
+      ${profiles.map(member => `<div class="table-row"><strong>${escapeHtml(member.display_name || "—")}</strong><span class="role-pill">${escapeHtml(member.role)}</span><span>${escapeHtml(member.email)}</span><span>${member.role === "pnm" ? "Own progress" : member.role === "nme" ? "Class statistics" : "Full access"}</span></div>`).join("") || `<div class="empty-state"><h2>No members yet.</h2></div>`}</div></section>`;
   }
 
   function renderClassSettings() {
+    const quizNames = ["All", ...unique(questions.map(question => question.quiz))];
+    const visibleQuestions = questions.filter(question => state.staffQuizFilter === "All" || question.quiz === state.staffQuizFilter);
+    const editing = state.creatingQuestion ? { id: "", q: "", a: "", quiz: state.staffQuizFilter === "All" ? "Quiz 1" : state.staffQuizFilter, category: "", mode: "exact", isCustom: true } : questions.find(question => question.id === state.editingQuestionId);
     el.view.innerHTML = `
-      <section class="hero-card"><p class="eyebrow">Class setup</p><h2>Prepare the next pledge class</h2><p>These are the fields that will feed the study guide and invitations.</p></section>
-      <section class="settings-grid"><article class="content-card settings-card"><p class="eyebrow">Class information</p><label>Class name<input class="answer-input" value="${escapeAttribute(config.pledgeClass?.name || "Next Pledge Class")}" /></label><label>Term<input class="answer-input" placeholder="e.g. Fall 2026" /></label><button class="primary-btn" data-action="demo-save" type="button">Save changes</button></article>
-      <article class="content-card settings-card"><p class="eyebrow">Study access</p><h2>Email-only sign in</h2><p>PNMs will receive a secure email link. Returning visitors stay signed in with a secure session cookie.</p><span class="status-pill ok">Planned for launch</span></article>
-      <article class="content-card settings-card"><p class="eyebrow">Question content</p><h2>Roster-driven Quiz 1</h2><p>Add the marshal, NME committee, and PNM roster in <code>js/config.js</code> for now. This page will become the live editor after the database is connected.</p></article></section>`;
+      <section class="hero-card"><p class="eyebrow">Class setup</p><h2>Question library</h2><p>Organize each quiz, edit questions, and release only the material PNMs should see this week.</p></section>
+      <section class="content-card staff-table-card"><div class="section-heading"><div><p class="eyebrow">Quiz releases</p><h2>${state.staffQuizFilter}</h2></div><button class="mini-btn" data-action="new-question" type="button">Add question</button></div><div class="chip-row">${quizNames.map(quiz => `<button class="chip ${quiz === state.staffQuizFilter ? "active" : ""}" data-action="staff-quiz" data-quiz="${escapeAttribute(quiz)}" type="button">${escapeHtml(quiz)}</button>`).join("")}</div>
+      <div class="member-table" style="margin-top:16px"><div class="table-head"><span>Question</span><span>Quiz</span><span>PNM access</span><span>Actions</span></div>${visibleQuestions.map(question => `<div class="table-row"><strong>${escapeHtml(question.q)}</strong><span>${escapeHtml(question.quiz)}</span><button class="mini-btn" data-action="toggle-question" data-id="${escapeAttribute(question.id)}" type="button">${question.isVisible === false ? "Hidden" : "Visible"}</button><button class="mini-btn" data-action="edit-question" data-id="${escapeAttribute(question.id)}" type="button">Edit</button></div>`).join("")}</div></section>
+      ${editing ? `<section class="content-card settings-card" style="margin-top:16px"><p class="eyebrow">${state.creatingQuestion ? "Add question" : "Edit question"}</p><label>Question<input id="staffQuestionText" class="answer-input" value="${escapeAttribute(editing.q)}" /></label><label>Answer<textarea id="staffQuestionAnswer" class="answer-input">${escapeHtml(formatAnswer(editing.a))}</textarea></label><label>Quiz<input id="staffQuestionQuiz" class="answer-input" value="${escapeAttribute(editing.quiz)}" /></label><div class="hero-actions"><button class="primary-btn" data-action="save-question-edit" data-id="${escapeAttribute(editing.id)}" type="button">Save changes</button>${editing.isCustom ? `<button class="ghost-btn danger" data-action="remove-question" data-id="${escapeAttribute(editing.id)}" type="button">Remove</button>` : ""}<button class="ghost-btn" data-action="cancel-question-edit" type="button">Cancel</button></div></section>` : ""}`;
+  }
+
+  function staffMemberSummary(member, data) {
+    const memberProgress = data.progress.filter(item => item.user_id === member.id);
+    const mastered = memberProgress.filter(item => item.mastered).length;
+    const latest = data.attempts.find(item => item.user_id === member.id);
+    return {
+      name: member.display_name || member.email,
+      mastered,
+      pct: questions.length ? Math.round(mastered / questions.length * 100) : 0,
+      latestQuiz: latest ? `${latest.score}/${latest.total}` : "—"
+    };
+  }
+
+  async function toggleQuestionVisibility(id) {
+    const question = questions.find(item => item.id === id);
+    if (!question) return;
+    await saveQuestionRecord(question, { is_visible: question.isVisible === false });
+    question.isVisible = question.isVisible === false;
+    renderClassSettings();
+  }
+
+  async function saveQuestionEdit(id) {
+    let question = questions.find(item => item.id === id);
+    if (!question && state.creatingQuestion) question = { id: `custom-${crypto.randomUUID()}`, q: "", a: "", quiz: "Quiz 1", category: "Custom", mode: "exact", isCustom: true, isVisible: true };
+    if (!question) return;
+    const text = document.getElementById("staffQuestionText")?.value?.trim();
+    const answer = document.getElementById("staffQuestionAnswer")?.value?.trim();
+    const quiz = document.getElementById("staffQuestionQuiz")?.value?.trim();
+    if (!text || !answer || !quiz) return toast("Question, answer, and quiz are required.", "bad");
+    await saveQuestionRecord(question, { question: text, answer, quiz });
+    question.q = text;
+    question.a = answer;
+    question.quiz = quiz;
+    if (state.creatingQuestion) questions.push(question);
+    state.editingQuestionId = null;
+    state.creatingQuestion = false;
+    renderClassSettings();
+  }
+
+  async function removeCustomQuestion(id) {
+    const question = questions.find(item => item.id === id);
+    if (!question?.isCustom || !window.confirm("Remove this custom question for everyone?")) return;
+    const { error } = await window.THETA_PORTAL?.supabase?.from("study_questions").delete().eq("id", id) || {};
+    if (error) return toast("Could not remove this question.", "bad");
+    questions = questions.filter(item => item.id !== id);
+    state.editingQuestionId = null;
+    state.creatingQuestion = false;
+    toast("Custom question removed.", "ok");
+    renderClassSettings();
+  }
+
+  async function saveQuestionRecord(question, changes) {
+    const portal = window.THETA_PORTAL;
+    if (!portal?.supabase) return toast("Staff connection unavailable.", "bad");
+    const payload = {
+      id: question.id,
+      question: changes.question || question.q,
+      answer: changes.answer || formatAnswer(question.a),
+      mode: question.mode || "exact",
+      category: question.category || null,
+      quiz: changes.quiz || question.quiz || "Quiz 1",
+      is_custom: String(question.id).startsWith("custom-"),
+      is_visible: changes.is_visible ?? question.isVisible !== false
+    };
+    const { error } = await portal.supabase.from("study_questions").upsert(payload);
+    if (error) toast(error.message.includes("is_visible") ? "Run the latest Supabase question-visibility migration, then try again." : "Could not save this question.", "bad");
+    else toast("Question saved for all members.", "ok");
   }
 
   function clearHistory() {

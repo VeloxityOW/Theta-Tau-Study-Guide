@@ -15,7 +15,7 @@ async function startPortal() {
   const [{ data: profile, error: profileError }, { data: savedProgress }, { data: changes }] = await Promise.all([
     supabase.from("profiles").select("role, display_name").eq("id", user.id).single(),
     supabase.from("question_progress").select("question_id, correct_count, wrong_count, mastered, updated_at").eq("user_id", user.id),
-    supabase.from("study_questions").select("id, question, answer, mode, category, quiz, is_custom")
+    supabase.from("study_questions").select("id, question, answer, mode, category, quiz, is_custom, is_visible")
   ]);
 
   if (profileError || !profile) throw new Error("Your portal profile is not ready yet.");
@@ -29,17 +29,22 @@ async function startPortal() {
       a: change.answer,
       mode: change.mode,
       cat: change.category || undefined,
-      quiz: change.quiz || undefined
+      quiz: change.quiz || undefined,
+      isVisible: change.is_visible,
+      isCustom: change.is_custom
     };
     baseById.set(change.id, { ...(baseById.get(change.id) || {}), ...question });
   });
 
   window.THETA_QUESTIONS = Array.from(baseById.values());
+  const isStaff = profile.role === "nme" || profile.role === "admin";
+  const staffData = isStaff ? await loadStaffData(supabase) : null;
   window.THETA_PORTAL = {
     supabase,
     user,
     profile,
-    isStaff: profile.role === "nme" || profile.role === "admin",
+    isStaff,
+    staffData,
     progress: Object.fromEntries((savedProgress || []).map(item => [item.question_id, {
       answered: item.correct_count + item.wrong_count > 0,
       correct: item.correct_count > 0 && item.wrong_count === 0,
@@ -49,6 +54,15 @@ async function startPortal() {
       lastSeenAt: item.updated_at
     }]))
   };
+}
+
+async function loadStaffData(supabase) {
+  const [profiles, progress, attempts] = await Promise.all([
+    supabase.from("profiles").select("id, email, display_name, role").order("created_at"),
+    supabase.from("question_progress").select("user_id, question_id, correct_count, wrong_count, mastered, updated_at"),
+    supabase.from("quiz_attempts").select("user_id, quiz_name, score, total, completed_at").order("completed_at", { ascending: false })
+  ]);
+  return { profiles: profiles.data || [], progress: progress.data || [], attempts: attempts.data || [] };
 }
 
 startPortal().then(() => {
