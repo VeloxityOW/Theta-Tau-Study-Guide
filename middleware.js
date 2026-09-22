@@ -27,4 +27,4 @@ export async function middleware(request) {
   return response;
 }
 
-export const config = { matcher: ["/study-guide/:path*", "/staff/:path*"] };
+export const config = { matcher: ["/study-guide/:path*", "/staff/:path*", "/invites/:path*"] };
