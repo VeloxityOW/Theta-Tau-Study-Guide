@@ -41,7 +41,7 @@
     hideMastered: false,
     shuffled: false,
     activeDeck: null,
-    loginRole: localStorage.getItem("thetaStudy.loginRole") || "pnm",
+    loginRole: "pnm",
     flashIndex: 0,
     quiz: null,
     gateAttempts: 0,
@@ -89,7 +89,14 @@
 
   let gateAnimation = createGateAnimation(el.gateCanvas);
 
-  init();
+  (window.thetaPortalReady || Promise.resolve()).then(() => {
+    const portal = window.THETA_PORTAL;
+    if (portal) {
+      state.loginRole = portal.isStaff ? "staff" : "pnm";
+      progress = { ...progress, ...portal.progress };
+    }
+    init();
+  });
 
   function init() {
     hydrateText();
@@ -159,10 +166,9 @@
   }
 
   function renderNav() {
-    const visibleItems = state.loginRole === "staff"
-      ? NAV_ITEMS
-      : NAV_ITEMS.filter(item => !STAFF_ONLY_VIEWS.has(item.view));
-    const html = visibleItems.map(item => navButtonHtml(item)).join("");
+    const visibleItems = NAV_ITEMS.filter(item => !STAFF_ONLY_VIEWS.has(item.view));
+    const html = visibleItems.map(item => navButtonHtml(item)).join("")
+      + (window.THETA_PORTAL?.isStaff ? `<a class="nav-btn" href="/staff"><span class="nav-icon">◈</span><span>Staff portal</span></a>` : "");
     el.navList.innerHTML = html;
     el.mobileNav.innerHTML = visibleItems.slice(0, 5).map(item => navButtonHtml(item)).join("");
   }
@@ -545,6 +551,7 @@
       lastSeenAt: new Date().toISOString()
     };
     writeJson(keys.progress, progress);
+    saveProgressToCloud(id);
     updateStats();
     if (mastered && !p.mastered) {
       toast(randomFrom(config.toastMessages?.mastered) || "Mastered.", "gold");
@@ -561,6 +568,7 @@
     const p = getProgress(id);
     progress[id] = { ...p, mastered: !p.mastered, answered: true, lastSeenAt: new Date().toISOString() };
     writeJson(keys.progress, progress);
+    saveProgressToCloud(id);
     render();
     toast(progress[id].mastered ? "Marked mastered." : "Mastery removed.", "gold");
   }
@@ -758,6 +766,7 @@
     quizHistory.unshift({ total, correct, date: new Date().toISOString(), deck: state.quiz.deck[0]?.quiz || "Mixed" });
     quizHistory = quizHistory.slice(0, 20);
     writeJson(keys.quizHistory, quizHistory);
+    saveQuizToCloud(quizHistory[0]);
     renderQuizResults();
   }
 
@@ -914,8 +923,34 @@
       : "Sign in to continue your pledge-class study guide.";
   }
 
-  function signOut() {
+  async function signOut() {
+    await window.THETA_PORTAL?.supabase?.auth.signOut();
     window.location.assign("/");
+  }
+
+  function saveProgressToCloud(questionId) {
+    const portal = window.THETA_PORTAL;
+    const item = progress[questionId];
+    if (!portal?.supabase || !item) return;
+    portal.supabase.from("question_progress").upsert({
+      user_id: portal.user.id,
+      question_id: questionId,
+      correct_count: item.correctCount || 0,
+      wrong_count: item.wrongCount || 0,
+      mastered: !!item.mastered,
+      updated_at: new Date().toISOString()
+    }).then(({ error }) => { if (error) console.error("Progress save failed", error); });
+  }
+
+  function saveQuizToCloud(item) {
+    const portal = window.THETA_PORTAL;
+    if (!portal?.supabase || !item) return;
+    portal.supabase.from("quiz_attempts").insert({
+      user_id: portal.user.id,
+      quiz_name: item.deck || "Mixed",
+      score: item.correct,
+      total: item.total
+    }).then(({ error }) => { if (error) console.error("Quiz save failed", error); });
   }
 
   function resetProgress() {
