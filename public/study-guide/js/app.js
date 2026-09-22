@@ -280,7 +280,7 @@
     if (name === "new-question") { state.creatingQuestion = true; state.editingQuestionId = null; renderClassSettings(); }
     if (name === "cancel-question-edit") { state.editingQuestionId = null; state.creatingQuestion = false; renderClassSettings(); }
     if (name === "save-question-edit") saveQuestionEdit(id);
-    if (name === "toggle-question") toggleQuestionVisibility(id);
+    if (name === "toggle-quiz") toggleQuizVisibility(action.dataset.quiz);
     if (name === "remove-question") removeCustomQuestion(id);
     if (name === "login-tab") setLoginRole(action.dataset.role);
     if (name === "sign-out") signOut();
@@ -327,7 +327,9 @@
 
   function renderDashboard() {
     const totals = computeTotals();
-    const quizCards = QUIZ_BOUNDARIES.map(group => {
+    const quizCards = QUIZ_BOUNDARIES
+      .filter(group => window.THETA_PORTAL?.isStaff || window.THETA_PORTAL?.visibleQuizzes?.has(group.name))
+      .map(group => {
       const deck = questions.filter(q => q.quiz === group.name);
       const mastered = deck.filter(q => getProgress(q.id).mastered).length;
       const answered = deck.filter(q => getProgress(q.id).answered).length;
@@ -468,7 +470,7 @@
     const search = normalizeLoose(state.search);
     return questions.filter(q => {
       const p = getProgress(q.id);
-      if (!window.THETA_PORTAL?.isStaff && q.isVisible === false) return false;
+      if (!window.THETA_PORTAL?.isStaff && !window.THETA_PORTAL?.visibleQuizzes?.has(q.quiz)) return false;
       if (state.activeDeck && q.quiz !== state.activeDeck) return false;
       if (reviewOnly && (p.mastered && p.correct && p.answered)) return false;
       if (state.filter !== "All" && q.category !== state.filter) return false;
@@ -894,8 +896,9 @@
     const editing = state.creatingQuestion ? { id: "", q: "", a: "", quiz: state.staffQuizFilter === "All" ? "Quiz 1" : state.staffQuizFilter, category: "", mode: "exact", isCustom: true } : questions.find(question => question.id === state.editingQuestionId);
     el.view.innerHTML = `
       <section class="hero-card"><p class="eyebrow">Class setup</p><h2>Question library</h2><p>Organize each quiz, edit questions, and release only the material PNMs should see this week.</p></section>
-      <section class="content-card staff-table-card"><div class="section-heading"><div><p class="eyebrow">Quiz releases</p><h2>${state.staffQuizFilter}</h2></div><button class="mini-btn" data-action="new-question" type="button">Add question</button></div><div class="chip-row">${quizNames.map(quiz => `<button class="chip ${quiz === state.staffQuizFilter ? "active" : ""}" data-action="staff-quiz" data-quiz="${escapeAttribute(quiz)}" type="button">${escapeHtml(quiz)}</button>`).join("")}</div>
-      <div class="member-table" style="margin-top:16px"><div class="table-head"><span>Question</span><span>Quiz</span><span>PNM access</span><span>Actions</span></div>${visibleQuestions.map(question => `<div class="table-row"><strong>${escapeHtml(question.q)}</strong><span>${escapeHtml(question.quiz)}</span><button class="mini-btn" data-action="toggle-question" data-id="${escapeAttribute(question.id)}" type="button">${question.isVisible === false ? "Hidden" : "Visible"}</button><button class="mini-btn" data-action="edit-question" data-id="${escapeAttribute(question.id)}" type="button">Edit</button></div>${editing && !state.creatingQuestion && editing.id === question.id ? `<div class="inline-question-editor">${questionEditorHtml(editing)}</div>` : ""}`).join("")}</div></section>
+      <section class="content-card staff-table-card"><div class="section-heading"><div><p class="eyebrow">Quiz releases</p><h2>${state.staffQuizFilter}</h2></div><button class="mini-btn" data-action="new-question" type="button">Add question</button></div><div class="chip-row">${quizNames.map(quiz => quiz === "All" ? `<button class="chip ${quiz === state.staffQuizFilter ? "active" : ""}" data-action="staff-quiz" data-quiz="${escapeAttribute(quiz)}" type="button">All</button>` : `<button class="chip ${quiz === state.staffQuizFilter ? "active" : ""}" data-action="staff-quiz" data-quiz="${escapeAttribute(quiz)}" type="button">${escapeHtml(quiz)} · ${window.THETA_PORTAL?.quizReleases?.[quiz] ? "Open" : "Hidden"}</button>`).join("")}</div>
+      ${state.staffQuizFilter !== "All" ? `<div class="hero-actions" style="margin:16px 0 0"><button class="${window.THETA_PORTAL?.quizReleases?.[state.staffQuizFilter] ? "secondary-btn" : "primary-btn"}" data-action="toggle-quiz" data-quiz="${escapeAttribute(state.staffQuizFilter)}" type="button">${window.THETA_PORTAL?.quizReleases?.[state.staffQuizFilter] ? `Hide ${escapeHtml(state.staffQuizFilter)} from PNMs` : `Release ${escapeHtml(state.staffQuizFilter)} to PNMs`}</button><span class="status-pill ${window.THETA_PORTAL?.quizReleases?.[state.staffQuizFilter] ? "ok" : "warn"}">${window.THETA_PORTAL?.quizReleases?.[state.staffQuizFilter] ? "Currently visible to PNMs" : "Currently hidden from PNMs"}</span></div>` : ""}
+      <div class="member-table" style="margin-top:16px"><div class="table-head"><span>Question</span><span>Quiz</span><span>Release</span><span>Actions</span></div>${visibleQuestions.map(question => `<div class="table-row"><strong>${escapeHtml(question.q)}</strong><span>${escapeHtml(question.quiz)}</span><span>${window.THETA_PORTAL?.quizReleases?.[question.quiz] ? "Visible with quiz" : "Hidden with quiz"}</span><button class="mini-btn" data-action="edit-question" data-id="${escapeAttribute(question.id)}" type="button">Edit</button></div>${editing && !state.creatingQuestion && editing.id === question.id ? `<div class="inline-question-editor">${questionEditorHtml(editing)}</div>` : ""}`).join("")}</div></section>
       ${state.creatingQuestion ? `<section class="content-card settings-card" style="margin-top:16px">${questionEditorHtml(editing)}</section>` : ""}`;
   }
 
@@ -915,11 +918,15 @@
     };
   }
 
-  async function toggleQuestionVisibility(id) {
-    const question = questions.find(item => item.id === id);
-    if (!question) return;
-    await saveQuestionRecord(question, { is_visible: question.isVisible === false });
-    question.isVisible = question.isVisible === false;
+  async function toggleQuizVisibility(quiz) {
+    const portal = window.THETA_PORTAL;
+    if (!portal?.supabase || !quiz) return;
+    const isVisible = !portal.quizReleases?.[quiz];
+    const { error } = await portal.supabase.from("quiz_releases").upsert({ quiz_name: quiz, is_visible: isVisible });
+    if (error) return toast("Run the latest quiz-release migration, then try again.", "bad");
+    portal.quizReleases[quiz] = isVisible;
+    portal.visibleQuizzes = new Set(Object.entries(portal.quizReleases).filter(([, visible]) => visible).map(([name]) => name));
+    toast(`${quiz} is now ${isVisible ? "visible" : "hidden"} for PNMs.`, "ok");
     renderClassSettings();
   }
 

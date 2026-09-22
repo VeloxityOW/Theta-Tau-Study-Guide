@@ -12,10 +12,11 @@ async function startPortal() {
     return new Promise(() => {});
   }
 
-  const [{ data: profile, error: profileError }, { data: savedProgress }, { data: changes }] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: savedProgress }, { data: changes }, { data: releases }] = await Promise.all([
     supabase.from("profiles").select("role, display_name").eq("id", user.id).single(),
     supabase.from("question_progress").select("question_id, correct_count, wrong_count, mastered, updated_at").eq("user_id", user.id),
-    supabase.from("study_questions").select("id, question, answer, mode, category, quiz, is_custom, is_visible")
+    supabase.from("study_questions").select("id, question, answer, mode, category, quiz, is_custom, is_visible"),
+    supabase.from("quiz_releases").select("quiz_name, is_visible")
   ]);
 
   const resolvedProfile = profile || { role: serverRole, display_name: displayName };
@@ -46,6 +47,8 @@ async function startPortal() {
     profile: resolvedProfile,
     isStaff,
     staffData,
+    visibleQuizzes: new Set((releases || []).filter(item => item.is_visible).map(item => item.quiz_name)),
+    quizReleases: Object.fromEntries((releases || []).map(item => [item.quiz_name, item.is_visible])),
     progress: Object.fromEntries((savedProgress || []).map(item => [item.question_id, {
       answered: item.correct_count + item.wrong_count > 0,
       correct: item.correct_count > 0 && item.wrong_count === 0,
