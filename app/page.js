@@ -9,11 +9,11 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [loaderState, setLoaderState] = useState("visible");
 
   useEffect(() => {
-    const beginExit = window.setTimeout(() => setLoaderState("exiting"), 2500);
-    const removeLoader = window.setTimeout(() => setLoaderState("hidden"), 3200);
+    const loader = document.getElementById("initial-launch-mask");
+    const beginExit = window.setTimeout(() => loader?.classList.add("exiting"), 2500);
+    const removeLoader = window.setTimeout(() => loader?.remove(), 3200);
     return () => {
       window.clearTimeout(beginExit);
       window.clearTimeout(removeLoader);
@@ -45,11 +45,6 @@ export default function SignInPage() {
 
   return (
     <main className="loginPage">
-      {loaderState !== "hidden" && (
-        <div className={`launchScreen ${loaderState}`} aria-label="Loading Theta Tau pledge portal">
-          <div className="launchRipple" aria-hidden="true" />
-        </div>
-      )}
       <div className="backgroundGlow" aria-hidden="true" />
       <div className="ring ringOne" aria-hidden="true" />
       <div className="ring ringTwo" aria-hidden="true" />
@@ -162,42 +157,6 @@ export default function SignInPage() {
             BlinkMacSystemFont,
             "Segoe UI",
             sans-serif;
-        }
-
-        .launchScreen {
-          position: fixed;
-          z-index: 50;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 50% 42%, rgba(174, 49, 43, 0.42), transparent 34%),
-            linear-gradient(155deg, #4a090b 0%, #260304 52%, #120101 100%);
-        }
-
-        .launchScreen.exiting {
-          pointer-events: none;
-        }
-
-        .launchRipple {
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: #121214;
-          box-shadow:
-            0 0 0 1px rgba(246, 217, 130, 0.18),
-            0 0 80px rgba(246, 217, 130, 0.15);
-        }
-
-        .launchScreen.exiting .launchRipple {
-          animation: rippleOut 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-        }
-
-        @keyframes rippleOut {
-          from { width: 0; height: 0; opacity: 1; }
-          78% { opacity: 1; }
-          to { width: 260vmax; height: 260vmax; opacity: 1; }
         }
 
         .backgroundGlow {
@@ -480,11 +439,6 @@ export default function SignInPage() {
             transition: none;
           }
 
-          .launchScreen,
-          .launchScreen.exiting,
-          .launchRipple {
-            animation: none;
-          }
         }
       `}</style>
     </main>
