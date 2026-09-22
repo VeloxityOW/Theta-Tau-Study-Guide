@@ -34,7 +34,7 @@
   ];
 
   const state = {
-    currentView: "dashboard",
+    currentView: new URLSearchParams(window.location.search).get("view") || "dashboard",
     filter: "All",
     search: "",
     hideMastered: false,
@@ -875,7 +875,7 @@
     el.view.innerHTML = `
       <section class="hero-card staff-hero">
         <div><p class="eyebrow">Staff dashboard</p><h2>Pledge-class overview</h2><p>See readiness at a glance, then reach out before quiz day.</p></div>
-        <button class="primary-btn" data-action="show-members" type="button">View members</button>
+        <a class="primary-btn" href="/study-guide/?view=members">View members</a>
       </section>
       <section class="staff-metrics">
         <article class="staff-metric"><span>${pnms.length}</span><small>Active PNMs</small></article>
@@ -893,7 +893,7 @@
   function renderMembers() {
     const profiles = window.THETA_PORTAL?.staffData?.profiles || [];
     el.view.innerHTML = `
-      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Review real member roles and study activity. Create a capped PNM invite link whenever you need one.</p></div><button class="primary-btn" data-action="open-invites" type="button">Invite links</button></section>
+      <section class="hero-card staff-hero"><div><p class="eyebrow">Member access</p><h2>Pledge-class roster</h2><p>Review real member roles and study activity. Create a capped PNM invite link whenever you need one.</p></div><a class="primary-btn" href="/invites">Invite links</a></section>
       <section class="content-card staff-table-card"><div class="member-toolbar"><input class="answer-input" placeholder="Search members…" aria-label="Search members" /><select class="select-input"><option>All roles</option><option>PNMs</option><option>NMEs</option><option>Admins</option></select></div>
       <div class="member-table"><div class="table-head"><span>Member</span><span>Role</span><span>Email</span><span>Access</span></div>
       ${profiles.map(member => `<div class="table-row"><strong>${escapeHtml(member.display_name || "—")}</strong><span class="role-pill">${escapeHtml(member.role)}</span><span>${escapeHtml(member.email)}</span><span>${member.role === "pnm" ? "Own progress" : member.role === "nme" ? "Class statistics" : "Full access"}</span></div>`).join("") || `<div class="empty-state"><h2>No members yet.</h2></div>`}</div></section>`;
