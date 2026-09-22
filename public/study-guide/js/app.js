@@ -177,7 +177,7 @@
       <button class="nav-btn" data-view="class-settings" type="button"><span class="nav-icon">⚙</span><span>Class Setup</span></button>` : "";
     const html = visibleItems.map(item => navButtonHtml(item)).join("") + staffLinks;
     el.navList.innerHTML = html;
-    el.mobileNav.innerHTML = visibleItems.slice(0, 5).map(item => navButtonHtml(item)).join("");
+    el.mobileNav.innerHTML = `<details class="mobile-menu"><summary><span>☰</span><strong>Menu</strong><small>All pages</small></summary><div class="mobile-menu-items">${html}</div></details>`;
   }
 
   function navButtonHtml(item) {
@@ -294,6 +294,7 @@
       view = "dashboard";
     }
     state.currentView = view;
+    el.mobileNav.querySelector("details")?.removeAttribute("open");
     resetVisibleCount();
     state.search = "";
     if (view === "flashcards") state.flashIndex = 0;
