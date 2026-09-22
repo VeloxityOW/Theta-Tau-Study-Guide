@@ -47,7 +47,7 @@ export default function SignInPage() {
     <main className="loginPage">
       {loaderState !== "hidden" && (
         <div className={`launchScreen ${loaderState}`} aria-label="Loading Theta Tau pledge portal">
-          <img className="launchLogo" src="/ot.webp" alt="Theta Tau" />
+          <div className="launchRipple" aria-hidden="true" />
         </div>
       )}
       <div className="backgroundGlow" aria-hidden="true" />
@@ -174,33 +174,30 @@ export default function SignInPage() {
           background:
             radial-gradient(circle at 50% 42%, rgba(174, 49, 43, 0.42), transparent 34%),
             linear-gradient(155deg, #4a090b 0%, #260304 52%, #120101 100%);
-          animation: launchHold 2.5s ease both;
         }
 
         .launchScreen.exiting {
-          animation: launchExit 700ms cubic-bezier(0.22, 0.85, 0.34, 1) both;
+          pointer-events: none;
         }
 
-        .launchLogo {
-          width: min(34vw, 230px);
-          min-width: 150px;
-          height: auto;
-          filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.38));
-          animation: logoBreathe 1.8s ease-in-out infinite;
+        .launchRipple {
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: #121214;
+          box-shadow:
+            0 0 0 1px rgba(246, 217, 130, 0.18),
+            0 0 80px rgba(246, 217, 130, 0.15);
         }
 
-        @keyframes launchHold {
-          from { opacity: 1; }
-          to { opacity: 1; }
+        .launchScreen.exiting .launchRipple {
+          animation: rippleOut 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
         }
 
-        @keyframes launchExit {
-          from { transform: translateY(0); }
-          to { transform: translateY(110%); }
-        }
-
-        @keyframes logoBreathe {
-          50% { transform: scale(1.055); }
+        @keyframes rippleOut {
+          from { width: 0; height: 0; opacity: 1; }
+          78% { opacity: 1; }
+          to { width: 260vmax; height: 260vmax; opacity: 1; }
         }
 
         .backgroundGlow {
@@ -485,7 +482,7 @@ export default function SignInPage() {
 
           .launchScreen,
           .launchScreen.exiting,
-          .launchLogo {
+          .launchRipple {
             animation: none;
           }
         }
