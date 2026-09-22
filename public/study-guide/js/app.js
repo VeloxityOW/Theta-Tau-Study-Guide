@@ -167,8 +167,11 @@
 
   function renderNav() {
     const visibleItems = NAV_ITEMS.filter(item => !STAFF_ONLY_VIEWS.has(item.view));
-    const html = visibleItems.map(item => navButtonHtml(item)).join("")
-      + (window.THETA_PORTAL?.isStaff ? `<a class="nav-btn" href="/staff"><span class="nav-icon">◈</span><span>Staff portal</span></a>` : "");
+    const staffLinks = window.THETA_PORTAL?.isStaff ? `
+      <a class="nav-btn" href="/staff#overview"><span class="nav-icon">◈</span><span>Staff</span></a>
+      <a class="nav-btn" href="/staff#members"><span class="nav-icon">♙</span><span>Members</span></a>
+      <a class="nav-btn" href="/staff#questions"><span class="nav-icon">⚙</span><span>Class Setup</span></a>` : "";
+    const html = visibleItems.map(item => navButtonHtml(item)).join("") + staffLinks;
     el.navList.innerHTML = html;
     el.mobileNav.innerHTML = visibleItems.slice(0, 5).map(item => navButtonHtml(item)).join("");
   }
