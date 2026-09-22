@@ -51,8 +51,10 @@ async function startPortal() {
   };
 }
 
-window.thetaPortalReady = startPortal().catch(error => {
+startPortal().then(() => {
+  window.resolveThetaPortal?.();
+}).catch(error => {
   console.error(error);
   document.body.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#160303;color:#fff8ef;font-family:system-ui;text-align:center"><div><h1>We couldn't open your portal.</h1><p>${error.message}</p><a style="color:#f2cf78" href="/">Return to sign in</a></div></main>`;
-  return new Promise(() => {});
+  window.rejectThetaPortal?.(error);
 });
