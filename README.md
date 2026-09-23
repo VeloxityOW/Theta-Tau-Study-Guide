@@ -26,7 +26,7 @@ This study guide is designed to closely match the material that PNMs are expecte
 ## Screenshots
 
 ### Login Page
-![Login Page](https://github.com/user-attachments/assets/9ab71a86-d7a0-4cfe-bd28-d1c459e8a8e0)
+![Login Page](https://github.com/user-attachments/assets/d3708084-a50e-4799-95a1-6fc6cd9ea6a2)
 
 ### Main Page 
-![Main Page](https://github.com/user-attachments/assets/b6d3cf6a-be1d-49ce-b299-33df59f227f9)
+![Main Page](https://github.com/user-attachments/assets/cbc64205-51dd-4587-a40a-226817d192db)
